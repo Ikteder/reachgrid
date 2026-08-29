@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">ReachGrid</string>
+    <string name="session_intro">Measure one-handed reach across your screen. Results stay on this device unless you share them.</string>
+</resources>

@@ -1,0 +1,41 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: gradle/actions/setup-gradle@v6
+      - name: Install Android SDK packages
+        run: |
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager "platforms;android-36" "build-tools;36.0.0"
+      - name: Verify dependency-free core
+        run: |
+          mkdir -p build/core-verification
+          javac -source 8 -target 8 -d build/core-verification \
+            app/src/main/java/dev/ikteder/reachgrid/core/ReachSession.java \
+            app/src/main/java/dev/ikteder/reachgrid/core/ReachReport.java \
+            tools/CoreVerification.java
+          java -cp build/core-verification CoreVerification
+          java -cp build/core-verification CoreVerification --json > build/core-report.json
+          python -c "import json; d=json.load(open('build/core-report.json')); assert d['schemaVersion']==1 and len(d['samples'])==48 and len(d['cells'])==24"
+      - name: Unit tests, lint, and debug APK
+        run: ./gradlew --no-daemon testDebugUnitTest lintDebug assembleDebug
+      - name: Verify privacy and APK artifact
+        run: |
+          ! grep -R "android.permission.INTERNET" app/src/main/AndroidManifest.xml
+          test -f app/build/outputs/apk/debug/app-debug.apk
+          sha256sum app/build/outputs/apk/debug/app-debug.apk
