@@ -46,6 +46,7 @@ public final class ReachGridView extends View {
     private void initialize() {
         setFocusable(true);
         setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_YES);
+        setAccessibilityLiveRegion(ACCESSIBILITY_LIVE_REGION_POLITE);
         setBackgroundColor(BACKGROUND);
         paint.setTypeface(android.graphics.Typeface.create("sans", android.graphics.Typeface.NORMAL));
         updateDescription();
@@ -61,14 +62,12 @@ public final class ReachGridView extends View {
         this.targetRadiusPixels = targetRadiusDp * getResources().getDisplayMetrics().density;
         this.missFlash = false;
         updateDescription();
-        announceForAccessibility(getContentDescription());
         invalidate();
     }
 
     public void showReport(ReachReport report) {
         this.report = report;
         updateDescription();
-        announceForAccessibility("Session complete. Heatmap is ready.");
         invalidate();
     }
 
@@ -174,15 +173,15 @@ public final class ReachGridView extends View {
                 SystemClock.elapsedRealtime());
         if (!result.hit) {
             missFlash = true;
-            announceForAccessibility("Miss. Target unchanged.");
+            setContentDescription("Miss. Target unchanged.");
             postDelayed(() -> {
                 missFlash = false;
+                updateDescription();
                 invalidate();
             }, 140);
         } else {
             performClick();
             updateDescription();
-            if (!result.complete) announceForAccessibility(getContentDescription());
         }
         if (listener != null) listener.onTap(result);
         invalidate();
