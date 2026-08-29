@@ -25,7 +25,19 @@
 
 ## Public Android verification
 
-The exact GitHub Actions result will be added after the public repository and CI run are verified. CI is required to provide the Android SDK boundary that the local machine lacks.
+[GitHub Actions run 33279739328](https://github.com/Ikteder/reachgrid/actions/runs/33279739328) completed successfully on the public repository.
+
+| Check | Actual result |
+|---|---|
+| SDK setup | Android platform 36 and Build Tools 36.0.0 installed successfully |
+| Independent core check | 4/4 verification groups passed; 6 misses preserved |
+| JVM unit tests | 7/7 tests passed through `testDebugUnitTest` |
+| Android lint | `lintDebug` passed |
+| APK assembly | `assembleDebug` passed; `app-debug.apk` existed |
+| Manifest privacy check | Internet permission absent |
+| Debug APK SHA-256 | `fea8ecb4ad2fdd98151457fd90c92ef59804e958c164bf201ab7b602e6d21342` |
+
+The first public run exposed a missing `sdkmanager` path in the workflow and stopped before project compilation. The workflow was corrected to install Android tooling explicitly. The replacement run passed, and the final run above also passed after current accessibility signaling replaced a deprecated announcement call.
 
 ## Interpretation boundary
 
