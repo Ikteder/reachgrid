@@ -29,10 +29,13 @@ jobs:
           javac -source 8 -target 8 -d build/core-verification \
             app/src/main/java/dev/ikteder/reachgrid/core/ReachSession.java \
             app/src/main/java/dev/ikteder/reachgrid/core/ReachReport.java \
+            app/src/main/java/dev/ikteder/reachgrid/core/ReachComparisonPlan.java \
+            app/src/main/java/dev/ikteder/reachgrid/core/ReachComparison.java \
+            app/src/main/java/dev/ikteder/reachgrid/core/ReachHistory.java \
             tools/CoreVerification.java
           java -cp build/core-verification CoreVerification
           java -cp build/core-verification CoreVerification --json > build/core-report.json
-          python -c "import json; d=json.load(open('build/core-report.json')); assert d['schemaVersion']==1 and len(d['samples'])==48 and len(d['cells'])==24"
+          python -c "import json; d=json.load(open('build/core-report.json')); assert d['schemaVersion']==1 and d['interpretation']=='second-minus-first' and len(d['cells'])==24 and len(d['firstReport']['samples'])==48"
       - name: Unit tests, lint, and debug APK
         run: ./gradlew --no-daemon testDebugUnitTest lintDebug assembleDebug
       - name: Verify privacy and APK artifact

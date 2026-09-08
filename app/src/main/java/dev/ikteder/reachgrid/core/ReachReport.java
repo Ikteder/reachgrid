@@ -58,6 +58,18 @@ public final class ReachReport {
         return summaries[row][column];
     }
 
+    public long seed() {
+        return seed;
+    }
+
+    public String handedness() {
+        return handedness;
+    }
+
+    public int targetRadiusDp() {
+        return targetRadiusDp;
+    }
+
     public String toJson() {
         StringBuilder json = new StringBuilder();
         json.append('{');

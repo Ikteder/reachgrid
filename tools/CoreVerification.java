@@ -1,5 +1,8 @@
 import dev.ikteder.reachgrid.core.ReachReport;
 import dev.ikteder.reachgrid.core.ReachSession;
+import dev.ikteder.reachgrid.core.ReachComparison;
+import dev.ikteder.reachgrid.core.ReachComparisonPlan;
+import dev.ikteder.reachgrid.core.ReachHistory;
 
 import java.util.Arrays;
 
@@ -46,15 +49,65 @@ public final class CoreVerification {
         }
         require(summaryMisses == injectedMisses, "summary misses must match injected evidence");
 
+        ReachComparisonPlan plan = new ReachComparisonPlan(20260907L, "right", 24, 40);
+        ReachComparisonPlan repeatPlan = new ReachComparisonPlan(20260907L, "right", 40, 24);
+        require(plan.radiusForPhase(0) == repeatPlan.radiusForPhase(0),
+                "counterbalanced order must be deterministic and input-order independent");
+        int lowerFirst = 0;
+        for (long seed = 20260000L; seed < 20261000L; seed += 1L) {
+            if (new ReachComparisonPlan(seed, "right", 24, 40).radiusForPhase(0) == 24) {
+                lowerFirst += 1;
+            }
+        }
+        require(lowerFirst > 400 && lowerFirst < 600,
+                "seed-derived assignment must exercise both orders without a large imbalance");
+
+        ReachReport slower = completedReport(99L, "left", 24, 500L);
+        ReachReport faster = completedReport(99L, "left", 40, 400L);
+        ReachComparison comparison = new ReachComparison(slower, faster);
+        require(comparison.meanMedianLatencyDeltaMilliseconds() == -100.0,
+                "paired mean latency must be second minus first");
+        require(comparison.meanReachScoreDelta() == 10.0,
+                "paired mean score must be second minus first");
+        require(comparison.totalMissDelta() == 0, "matched fixture must have zero miss delta");
+
+        String history = "broken";
+        for (int index = 0; index < 5; index += 1) {
+            history = ReachHistory.append(history, 1_000L + index, report, 3);
+        }
+        require(ReachHistory.count(history) == 3, "history must retain only its newest entries");
+        require(ReachHistory.entries(history).get(0).savedAtEpochMilliseconds == 1_002L,
+                "history must discard oldest entries first");
+        String historyJson = ReachHistory.toJson(history);
+        require(!historyJson.contains("normalizedX") && !historyJson.contains("normalizedY"),
+                "history must preserve the no-coordinate privacy boundary");
+
         if (args.length == 1 && "--json".equals(args[0])) {
-            System.out.println(report.toJson());
+            System.out.println(comparison.toJson());
             return;
         }
         System.out.println("PASS deterministic route");
         System.out.println("PASS balanced 48-target coverage");
         System.out.println("PASS miss attribution and completion");
         System.out.println("PASS summaries and bounded scores");
-        System.out.println("4/4 core verification groups passed; misses=" + injectedMisses);
+        System.out.println("PASS deterministic counterbalanced pair assignment; lowerFirst=" + lowerFirst);
+        System.out.println("PASS paired cell and overall deltas");
+        System.out.println("PASS bounded, corruption-tolerant local history");
+        System.out.println("PASS history privacy and comparison JSON");
+        System.out.println("8/8 core verification groups passed; misses=" + injectedMisses);
+    }
+
+    private static ReachReport completedReport(
+            long seed, String handedness, int radiusDp, long latencyMilliseconds) {
+        ReachSession session = new ReachSession(seed);
+        long now = 1_000L;
+        session.start(now);
+        while (!session.isComplete()) {
+            ReachSession.Target target = session.currentTarget();
+            now += latencyMilliseconds;
+            session.tap(target.centerX(), target.centerY(), 0.01, 0.01, now);
+        }
+        return new ReachReport(session, handedness, radiusDp);
     }
 
     private static void require(boolean condition, String message) {

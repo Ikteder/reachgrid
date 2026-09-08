@@ -11,6 +11,7 @@ import android.view.MotionEvent;
 import android.view.View;
 
 import dev.ikteder.reachgrid.core.ReachReport;
+import dev.ikteder.reachgrid.core.ReachComparison;
 import dev.ikteder.reachgrid.core.ReachSession;
 
 public final class ReachGridView extends View {
@@ -29,6 +30,7 @@ public final class ReachGridView extends View {
     private final RectF cellRect = new RectF();
     private ReachSession session;
     private ReachReport report;
+    private ReachComparison comparison;
     private Listener listener;
     private float targetRadiusPixels;
     private boolean missFlash;
@@ -59,6 +61,7 @@ public final class ReachGridView extends View {
     public void startSession(ReachSession session, int targetRadiusDp) {
         this.session = session;
         this.report = null;
+        this.comparison = null;
         this.targetRadiusPixels = targetRadiusDp * getResources().getDisplayMetrics().density;
         this.missFlash = false;
         updateDescription();
@@ -67,6 +70,14 @@ public final class ReachGridView extends View {
 
     public void showReport(ReachReport report) {
         this.report = report;
+        this.comparison = null;
+        updateDescription();
+        invalidate();
+    }
+
+    public void showComparison(ReachComparison comparison) {
+        this.comparison = comparison;
+        this.report = null;
         updateDescription();
         invalidate();
     }
@@ -74,6 +85,7 @@ public final class ReachGridView extends View {
     public void clearSession() {
         session = null;
         report = null;
+        comparison = null;
         missFlash = false;
         updateDescription();
         invalidate();
@@ -84,7 +96,9 @@ public final class ReachGridView extends View {
         super.onDraw(canvas);
         if (getWidth() == 0 || getHeight() == 0) return;
         drawGrid(canvas);
-        if (report != null) {
+        if (comparison != null) {
+            drawComparison(canvas);
+        } else if (report != null) {
             drawHeatmap(canvas);
         } else if (session != null && session.isStarted() && !session.isComplete()) {
             drawTarget(canvas);
@@ -150,6 +164,32 @@ public final class ReachGridView extends View {
         }
     }
 
+    private void drawComparison(Canvas canvas) {
+        float cellWidth = getWidth() / (float) ReachSession.COLUMNS;
+        float cellHeight = getHeight() / (float) ReachSession.ROWS;
+        for (int row = 0; row < ReachSession.ROWS; row += 1) {
+            for (int column = 0; column < ReachSession.COLUMNS; column += 1) {
+                ReachComparison.CellDelta delta = comparison.delta(row, column);
+                float left = column * cellWidth;
+                float top = row * cellHeight;
+                cellRect.set(left + dp(3), top + dp(3), left + cellWidth - dp(3), top + cellHeight - dp(3));
+                paint.setStyle(Paint.Style.FILL);
+                paint.setColor(deltaColor(delta.reachScoreDelta));
+                canvas.drawRoundRect(cellRect, dp(10), dp(10), paint);
+                paint.setTextAlign(Paint.Align.CENTER);
+                paint.setColor(Math.abs(delta.reachScoreDelta) >= 12 ? Color.WHITE : INK);
+                paint.setTextSize(dp(14));
+                paint.setTypeface(android.graphics.Typeface.DEFAULT_BOLD);
+                canvas.drawText(signed(delta.reachScoreDelta) + " pts",
+                        left + cellWidth / 2, top + cellHeight / 2 - dp(2), paint);
+                paint.setTextSize(dp(11));
+                paint.setTypeface(android.graphics.Typeface.DEFAULT);
+                canvas.drawText(signed(delta.medianLatencyDeltaMilliseconds) + " ms",
+                        left + cellWidth / 2, top + cellHeight / 2 + dp(16), paint);
+            }
+        }
+    }
+
     private void drawCenteredMessage(Canvas canvas, String message) {
         paint.setStyle(Paint.Style.FILL);
         paint.setColor(INK);
@@ -195,7 +235,9 @@ public final class ReachGridView extends View {
     }
 
     private void updateDescription() {
-        if (report != null) {
+        if (comparison != null) {
+            setContentDescription("Paired reach comparison. Each cell shows second-minus-first score and latency changes.");
+        } else if (report != null) {
             setContentDescription("Reach heatmap. Each cell shows score, median latency, and misses.");
         } else if (session != null && session.isStarted() && !session.isComplete()) {
             ReachSession.Target target = session.currentTarget();
@@ -213,6 +255,18 @@ public final class ReachGridView extends View {
         if (score >= 60) return Color.rgb(180, 218, 123);
         if (score >= 40) return Color.rgb(250, 196, 92);
         return Color.rgb(194, 52, 64);
+    }
+
+    private int deltaColor(int scoreDelta) {
+        if (scoreDelta >= 12) return Color.rgb(43, 132, 91);
+        if (scoreDelta > 0) return Color.rgb(168, 219, 181);
+        if (scoreDelta <= -12) return Color.rgb(174, 54, 67);
+        if (scoreDelta < 0) return Color.rgb(244, 174, 153);
+        return Color.rgb(218, 224, 235);
+    }
+
+    private String signed(long value) {
+        return value > 0 ? "+" + value : Long.toString(value);
     }
 
     private float dp(float value) {
