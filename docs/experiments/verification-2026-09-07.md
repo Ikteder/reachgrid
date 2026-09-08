@@ -23,7 +23,20 @@
 
 ## Public Android verification
 
-Pending the publication commit and GitHub Actions run. This section must be updated with the actual run URL, test count, lint result, APK result, and artifact hash before the improvement is reported complete.
+[GitHub Actions run 34191558668](https://github.com/Ikteder/reachgrid/actions/runs/34191558668) completed successfully for implementation commit `fa8890e14a716b663526e1fb72be2e2d90453e7d`.
+
+| Check | Actual result |
+|---|---|
+| SDK setup | Android platform 36 and Build Tools 36.0.0 installed successfully |
+| Independent core check | 8/8 verification groups passed; comparison JSON invariants passed |
+| JVM unit tests | All 12 declared test methods passed through `testDebugUnitTest` |
+| Android compilation | `compileDebugJavaWithJavac` passed |
+| Android lint | `lintDebug` passed and produced HTML and SARIF reports |
+| APK assembly | `assembleDebug` passed; `app-debug.apk` existed |
+| Manifest privacy check | Internet permission absent |
+| Debug APK SHA-256 | `9ad4fa8ae02e474b1dfc98722f2152cac8780cdd1164ad2fa1b99c2d2e001953` |
+
+The Android job completed in 2 minutes 2 seconds. Its Gradle invocation executed 47 actionable tasks and reported `BUILD SUCCESSFUL` in 1 minute 27 seconds.
 
 ## Interpretation boundary
 
